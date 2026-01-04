@@ -1,30 +1,26 @@
+
 from concurrent import futures
 
-import grpc
+import retry_example_pb2
+import retry_example_pb2_grpc
+
 import time
-
-import data_service_pb2
-import data_service_pb2_grpc
+import grpc
 
 
-class DataService(data_service_pb2_grpc.DataServiceServicer):
-    def GetData(self, request, context):
-        data_id = request.data_id
-
-        data = b"This is a test data" * 100000
-
-        print(f"Data {len(data)} bytes")
-
-        return data_service_pb2.DataResponse(data=data)
+class ExampleService(retry_example_pb2_grpc.ExampleServiceServicer):
+    def SayHello(self, request, context):
+        if time.time() % 2 < 1:
+            print("Server Unavailable")
+            context.abort(grpc.StatusCode.UNAVAILABLE, "Server Unavailable")
+        
+        return retry_example_pb2.HelloReply(reply_message=f"Hello, {request.name}!")
 
 
 def serve():
-    server = grpc.server(
-        futures.ThreadPoolExecutor(max_workers=10),
-        compression=grpc.Compression.Gzip
-    )
 
-    data_service_pb2_grpc.add_DataServiceServicer_to_server(DataService(), server)
+    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
+    retry_example_pb2_grpc.add_ExampleServiceServicer_to_server(ExampleService(), server)
     server.add_insecure_port("[::]:50051")
     server.start()
     server.wait_for_termination()

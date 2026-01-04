@@ -2,3 +2,8 @@ __pycache__/
 
 *.proto
 *pb2.py
+*pb2_grpc.py
+
+*.crt
+*.csr
+*.key
